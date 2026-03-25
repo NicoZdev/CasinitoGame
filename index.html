@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LUCKY SPIN — Multijugador</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
+  :root {
+    --gold: #FFD700; --gold-dark: #B8860B; --red: #FF2D55; --green: #00FF88;
+    --bg: #0A0A0F; --panel: #12121A; --panel2: #1A1A26; --border: #2A2A40;
+    --text: #E0E0FF; --dim: #555570; --reel-bg: #080810;
+    --p1: #4A90D9; --p2: #D94A4A; --p3: #4AD94A; --p4: #D9D94A;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    height: 100vh; overflow: hidden;
+    background-image: radial-gradient(ellipse 80% 60% at 50% 0%, #1a0a2e 0%, transparent 60%);
+  }
+  .screen { display:none; width:100vw; height:100vh; }
+  .screen.active { display:flex; }
+
+  /* MENU */
+  #menu-screen { flex-direction:column; align-items:center; justify-content:center; }
+  .menu-title { font-family:'Bebas Neue',sans-serif; font-size:clamp(2.5rem,7vw,5rem); letter-spacing:.12em; color:var(--gold); text-shadow:0 0 30px #FFD70088; text-align:center; }
+  .menu-sub { font-family:'Orbitron',sans-serif; font-size:.6rem; letter-spacing:.4em; color:var(--dim); margin-bottom:30px; }
+  .player-select-box { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:25px 40px; text-align:center; }
+  .player-select-label { font-size:.55rem; letter-spacing:.25em; color:var(--dim); margin-bottom:15px; }
+  .player-options { display:flex; gap:8px; margin-bottom:15px; }
+  .player-option { width:55px; height:55px; background:var(--reel-bg); border:2px solid var(--border); border-radius:8px; font-family:'Orbitron',sans-serif; font-size:1.4rem; font-weight:700; color:var(--dim); cursor:pointer; transition:all .2s; }
+  .player-option:hover { border-color:var(--gold-dark); color:var(--gold); }
+  .player-option.selected { background:var(--gold-dark); border-color:var(--gold); color:#000; box-shadow:0 0 12px #FFD70066; }
+  .gamepad-hint { font-size:.6rem; color:var(--dim); }
+  .gamepad-hint span { color:var(--gold); }
+
+  /* JOIN SCREEN */
+  #join-screen { flex-direction:column; align-items:center; justify-content:center; }
+  .join-title { font-family:'Bebas Neue',sans-serif; font-size:clamp(1.8rem,5vw,3rem); color:var(--gold); text-shadow:0 0 20px #FFD70066; margin-bottom:30px; }
+  .join-instructions { font-size:.7rem; color:var(--dim); margin-bottom:25px; text-align:center; }
+  .join-players { display:flex; flex-direction:column; gap:10px; width:100%; max-width:400px; }
+  .join-player { background:var(--panel); border:2px solid var(--border); border-radius:8px; padding:15px 20px; display:flex; justify-content:space-between; align-items:center; transition:all .3s; }
+  .join-player.waiting { border-color:var(--dim); }
+  .join-player.ready { border-color:var(--green); box-shadow:0 0 15px rgba(0,255,136,0.3); }
+  .join-player.ready .jp-status { color:var(--green); }
+  .jp-name { font-family:'Orbitron',sans-serif; font-size:.9rem; font-weight:700; }
+  .jp-status { font-size:.65rem; color:var(--dim); transition:color .3s; }
+  .join-hint { margin-top:25px; font-size:.65rem; color:var(--dim); text-align:center; }
+
+  /* GAME */
+  #game-screen { flex-direction:column; }
+  .game-header { background:var(--panel); border-bottom:2px solid var(--border); padding:6px 15px; display:flex; justify-content:space-between; align-items:center; flex-shrink:0; }
+  .timer { font-family:'Orbitron',sans-serif; font-size:1.1rem; color:var(--gold); }
+  .timer.warning { color:var(--red); animation:blink 1s infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.4} }
+  .scoreboard { display:flex; gap:15px; }
+  .pscore { font-family:'Orbitron',sans-serif; font-size:.7rem; padding:3px 10px; border-radius:4px; background:var(--reel-bg); border:1px solid var(--border); }
+  .pscore span { color:var(--gold); }
+
+  .game-area { flex:1; display:grid; gap:3px; padding:3px; min-height:0; }
+  .game-area.p1 { grid-template-columns:1fr; grid-template-rows:1fr; }
+  .game-area.p2-v { grid-template-columns:1fr; grid-template-rows:1fr 1fr; }
+  .game-area.p2-h { grid-template-columns:1fr 1fr; grid-template-rows:1fr; }
+  .game-area.p3 { grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; }
+  .game-area.p4 { grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; }
+
+  .player-panel { background:var(--panel); border:2px solid var(--border); border-radius:8px; display:flex; flex-direction:column; padding:6px; min-height:0; overflow:hidden; position:relative; }
+  .player-panel.p1c { border-color:var(--p1); }
+  .player-panel.p2c { border-color:var(--p2); }
+  .player-panel.p3c { border-color:var(--p3); }
+  .player-panel.p4c { border-color:var(--p4); }
+  .player-panel.active { border-width:3px; box-shadow:0 0 25px rgba(255,215,0,0.4); }
+
+  .player-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; flex-shrink:0; }
+  .player-info { display:flex; align-items:center; gap:8px; }
+  .pname { font-family:'Orbitron',sans-serif; font-size:.65rem; font-weight:700; }
+  .p1c .pname { color:var(--p1); }
+  .p2c .pname { color:var(--p2); }
+  .p3c .pname { color:var(--p3); }
+  .p4c .pname { color:var(--p4); }
+  .pgp-badge { font-size:.45rem; padding:2px 5px; background:var(--reel-bg); border:1px solid var(--border); border-radius:3px; color:var(--dim); }
+  .pgp-badge.ready { color:var(--green); border-color:var(--green); }
+  .pbalance { font-family:'Orbitron',sans-serif; font-size:.75rem; color:var(--gold); }
+
+  .reels-area { flex:1; display:flex; justify-content:center; align-items:center; min-height:0; gap:3px; }
+  .reel { background:var(--reel-bg); border:1px solid var(--border); border-radius:4px; width:42px; height:100%; display:flex; flex-direction:column; overflow:hidden; }
+  .reel-inner { display:flex; flex-direction:column; width:100%; }
+  .reel-inner.spinning { animation:spin .07s linear infinite; }
+  @keyframes spin { 0%{transform:translateY(0)} 100%{transform:translateY(-20%);} }
+  .sym { height:20%; display:flex; align-items:center; justify-content:center; font-size:1.3rem; flex-shrink:0; }
+
+  .controls-area { flex-shrink:0; margin-top:4px; }
+  .ctrl-row { display:flex; justify-content:center; gap:4px; flex-wrap:wrap; }
+  .cbtn { padding:4px 8px; background:var(--reel-bg); border:1px solid var(--border); border-radius:3px; color:var(--dim); font-family:'Share Tech Mono',monospace; font-size:.55rem; cursor:pointer; transition:all .1s; }
+  .cbtn:hover { border-color:var(--gold-dark); color:var(--gold); }
+  .cbtn.selected { background:var(--gold-dark); border-color:var(--gold); color:#000; }
+  .spinbtn { padding:6px 16px; background:linear-gradient(135deg,#c8920a,#FFD700,#c8920a); border:none; border-radius:5px; font-family:'Bebas Neue',sans-serif; font-size:.9rem; letter-spacing:.08em; color:#000; cursor:pointer; transition:all .1s; }
+  .spinbtn:hover:not(:disabled) { transform:scale(1.05); box-shadow:0 0 12px #FFD70066; }
+  .spinbtn:disabled { background:var(--border); color:var(--dim); cursor:not-allowed; }
+
+  .winpopup { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) scale(0); background:linear-gradient(135deg,#1a1200,#3a2800); border:2px solid var(--gold); border-radius:8px; padding:8px 20px; z-index:10; pointer-events:none; transition:transform .25s cubic-bezier(.34,1.56,.64,1); }
+  .winpopup.show { transform:translate(-50%,-50%) scale(1); }
+  .winpopup .wtext { font-family:'Orbitron',sans-serif; font-size:.8rem; color:var(--green); text-shadow:0 0 8px var(--green); }
+
+  /* END */
+  #end-screen { flex-direction:column; align-items:center; justify-content:center; }
+  .end-title { font-family:'Bebas Neue',sans-serif; font-size:clamp(2rem,5vw,3.5rem); color:var(--gold); text-shadow:0 0 25px #FFD70088; margin-bottom:20px; }
+  .winner-box { background:var(--panel); border:2px solid var(--gold); border-radius:12px; padding:25px 45px; text-align:center; margin-bottom:25px; }
+  .w-name { font-family:'Orbitron',sans-serif; font-size:1.3rem; color:var(--gold); margin-bottom:8px; }
+  .w-score { font-family:'Bebas Neue',sans-serif; font-size:2.8rem; color:var(--green); text-shadow:0 0 15px var(--green); }
+  .scores-final { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin-bottom:20px; }
+  .score-final-item { font-family:'Orbitron',sans-serif; font-size:.7rem; padding:5px 12px; background:var(--reel-bg); border:1px solid var(--border); border-radius:4px; }
+  .score-final-item span { color:var(--gold); }
+  .menubtn { padding:10px 25px; background:linear-gradient(135deg,#c8920a,#FFD700,#c8920a); border:none; border-radius:6px; font-family:'Bebas Neue',sans-serif; font-size:1.1rem; letter-spacing:.1em; color:#000; cursor:pointer; transition:all .15s; }
+  .menubtn:hover { transform:scale(1.05); box-shadow:0 0 15px #FFD70066; }
+
+  .particle { position:fixed; pointer-events:none; z-index:999; font-size:1.4rem; animation:pFly 1s ease-out forwards; }
+  @keyframes pFly { 0%{opacity:1;transform:translate(0,0) scale(1)} 100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(.2)} }
+</style>
+</head>
+<body>
+
+<div id="menu-screen" class="screen active">
+  <h1 class="menu-title">⚡ LUCKY SPIN</h1>
+  <p class="menu-sub">casino • tragamonedas • multiplayer</p>
+  <div class="player-select-box">
+    <div class="player-select-label">CANTIDAD DE JUGADORES</div>
+    <div class="player-options" id="player-options">
+      <button class="player-option" data-p="1">1</button>
+      <button class="player-option selected" data-p="2">2</button>
+      <button class="player-option" data-p="3">3</button>
+      <button class="player-option" data-p="4">4</button>
+    </div>
+    <div class="gamepad-hint">Usa <span>D-PAD</span> y presiona <span>A</span> para confirmar</div>
+  </div>
+</div>
+
+<div id="join-screen" class="screen">
+  <h2 class="join-title">CONECTAR MANDOS</h2>
+  <p class="join-instructions">Cada jugador presiona <span style="color:var(--gold)">A</span> o <span style="color:var(--gold)">X</span> en su mando para unirse</p>
+  <div class="join-players" id="join-players"></div>
+  <p class="join-hint" id="join-hint">Esperando jugador 1...</p>
+</div>
+
+<div id="game-screen" class="screen">
+  <div class="game-header">
+    <div class="timer" id="timer">20:00</div>
+    <div class="scoreboard" id="scoreboard"></div>
+  </div>
+  <div class="game-area p2-v" id="game-area"></div>
+</div>
+
+<div id="end-screen" class="screen">
+  <h1 class="end-title">🏆 ¡JUEGO TERMINADO!</h1>
+  <div class="winner-box">
+    <div class="w-name" id="w-name">JUGADOR 1</div>
+    <div class="w-score" id="w-score">$0</div>
+  </div>
+  <div class="scores-final" id="scores-final"></div>
+  <button class="menubtn" id="back-menu">VOLVER AL MENÚ</button>
+</div>
+
+<script>
+const SYMBOLS = [
+  { s:'🍒', w:22, p:[0,0,4,8,20] },
+  { s:'🍋', w:20, p:[0,0,5,10,25] },
+  { s:'🍊', w:18, p:[0,0,6,14,35] },
+  { s:'🍇', w:15, p:[0,0,8,18,45] },
+  { s:'🔔', w:10, p:[0,0,12,28,70] },
+  { s:'💎', w:7,  p:[0,0,18,45,110] },
+  { s:'7️⃣', w:5,  p:[0,0,25,70,180] },
+  { s:'⭐', w:3,  p:[0,0,40,120,400] },
+];
+const LINE_NAMES = ['Central','Sup','Inf','Diag↘','Diag↙'];
+const MULT = [1,2,5,10,20];
+const REELS = 6;
+const ROWS = 5;
+const BASE = 5;
+const DURATION = 20 * 60 * 1000;
+
+const POOL = [];
+for(let i=0; i<SYMBOLS.length; i++) {
+  for(let j=0; j<SYMBOLS[i].w; j++) POOL.push(i);
+}
+
+let numP = 2;
+let state = 'menu';
+let timer = null;
+let timeLeft = DURATION;
+let players = [];
+let gpAssignments = [];
+let nextPlayerToJoin = 0;
+let menuSel = 2;
+let gameStarted = false;
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function initMenu() {
+  document.querySelectorAll('.player-option').forEach(btn => {
+    btn.addEventListener('click', () => selectPlayers(parseInt(btn.dataset.p)));
+  });
+  document.getElementById('back-menu').onclick = () => {
+    state = 'menu';
+    gameStarted = false;
+    if(timer) clearInterval(timer);
+    gpAssignments = [];
+    nextPlayerToJoin = 0;
+    showScreen('menu-screen');
+  };
+  showScreen('menu-screen');
+}
+
+function selectPlayers(n) {
+  numP = n;
+  menuSel = n;
+  document.querySelectorAll('.player-option').forEach(b => {
+    b.classList.toggle('selected', parseInt(b.dataset.p) === n);
+  });
+  gpAssignments = [];
+  nextPlayerToJoin = 0;
+  updateJoinScreen();
+  showScreen('join-screen');
+}
+
+function updateJoinScreen() {
+  const container = document.getElementById('join-players');
+  container.innerHTML = '';
+  
+  for(let i=0; i<numP; i++) {
+    const div = document.createElement('div');
+    div.className = 'join-player';
+    const isJoined = i < nextPlayerToJoin;
+    const isWaiting = i === nextPlayerToJoin;
+    div.classList.add(isJoined ? 'ready' : 'waiting');
+    div.innerHTML = `
+      <span class="jp-name" style="color:var(--p${i+1})">JUGADOR ${i+1}</span>
+      <span class="jp-status">${isJoined ? '✓ Conectado' : isWaiting ? 'Presiona A...' : 'Esperando...'}</span>
+    `;
+    container.appendChild(div);
+  }
+  
+  document.getElementById('join-hint').textContent = 
+    nextPlayerToJoin >= numP ? '¡Todos listos!' : `Esperando jugador ${nextPlayerToJoin + 1}...`;
+}
+
+function tryJoinGame(gpIdx) {
+  if(state !== 'join') return;
+  if(gpAssignments.includes(gpIdx)) return;
+  if(nextPlayerToJoin >= numP) return;
+  
+  gpAssignments[nextPlayerToJoin] = gpIdx;
+  nextPlayerToJoin++;
+  updateJoinScreen();
+  
+  if(nextPlayerToJoin >= numP) {
+    setTimeout(() => startGame(), 500);
+  }
+}
+
+function startGame() {
+  if(state === 'playing' || gameStarted) return;
+  gameStarted = true;
+  state = 'playing';
+  timeLeft = DURATION;
+  
+  players = [];
+  for(let i=0; i<numP; i++) {
+    players.push({
+      balance: 1000,
+      lines: 1,
+      mult: 1,
+      spinning: false,
+      reelVals: [],
+      wins: 0,
+      spins: 0
+    });
+  }
+  
+  buildGameUI();
+  showScreen('game-screen');
+  updateScoreboard();
+  startTimer();
+}
+
+function buildGameUI() {
+  const area = document.getElementById('game-area');
+  area.innerHTML = '';
+  area.className = 'game-area';
+  
+  if(numP === 1) area.classList.add('p1');
+  else if(numP === 2) area.classList.add('p2-v');
+  else area.classList.add('p3');
+
+  players.forEach((p, idx) => {
+    const panel = document.createElement('div');
+    panel.className = `player-panel p${idx+1}c`;
+    panel.id = `panel-${idx}`;
+    panel.innerHTML = `
+      <div class="player-top">
+        <div class="player-info">
+          <span class="pname">JUGADOR ${idx+1}</span>
+          <span class="pgp-badge ready" id="pgp-${idx}">GP${(gpAssignments[idx]||0)+1}</span>
+        </div>
+        <span class="pbalance" id="bal-${idx}">$${p.balance}</span>
+      </div>
+      <div class="reels-area" id="reels-${idx}"></div>
+      <div class="controls-area">
+        <div class="ctrl-row">
+          ${[1,2,3,4,5].map(l => `<button class="cbtn${l===1?' selected':''}" data-l="${l}" onclick="setLines(${idx},${l})">${LINE_NAMES[l-1]}</button>`).join('')}
+        </div>
+        <div class="ctrl-row" style="margin-top:3px">
+          ${MULT.map(m => `<button class="cbtn${m===1?' selected':''}" data-m="${m}" onclick="setMult(${idx},${m})">x${m}</button>`).join('')}
+          <button class="spinbtn" id="spin-${idx}" onclick="spin(${idx})">GIRAR</button>
+        </div>
+      </div>
+      <div class="winpopup" id="wp-${idx}"><div class="wtext">+$$0</div></div>
+    `;
+    area.appendChild(panel);
+
+    const reelsC = document.getElementById(`reels-${idx}`);
+    p.reelVals = [];
+    
+    for(let r=0; r<REELS; r++) {
+      const reel = document.createElement('div');
+      reel.className = 'reel';
+      const inner = document.createElement('div');
+      inner.className = 'reel-inner';
+      inner.id = `ri-${idx}-${r}`;
+      
+      const col = [];
+      for(let row=0; row<ROWS; row++) {
+        const si = Math.floor(Math.random() * POOL.length);
+        col.push(si);
+        const sym = document.createElement('div');
+        sym.className = 'sym';
+        sym.textContent = SYMBOLS[si].s;
+        inner.appendChild(sym);
+      }
+      p.reelVals.push(col);
+      reel.appendChild(inner);
+      reelsC.appendChild(reel);
+    }
+
+    updatePlayerUI(idx);
+  });
+
+  updateActivePanel(0);
+}
+
+function updateActivePanel(idx) {
+  document.querySelectorAll('.player-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById(`panel-${idx}`).classList.add('active');
+}
+
+function setLines(pIdx, l) {
+  players[pIdx].lines = l;
+  updatePlayerUI(pIdx);
+}
+
+function setMult(pIdx, m) {
+  players[pIdx].mult = m;
+  updatePlayerUI(pIdx);
+}
+
+function totalBet(p) { return p.lines * BASE * p.mult; }
+
+function updatePlayerUI(idx) {
+  const p = players[idx];
+  document.getElementById(`bal-${idx}`).textContent = `$${p.balance}`;
+  document.querySelectorAll(`#panel-${idx} .cbtn[data-l]`).forEach(b => {
+    b.classList.toggle('selected', parseInt(b.dataset.l) === p.lines);
+  });
+  document.querySelectorAll(`#panel-${idx} .cbtn[data-m]`).forEach(b => {
+    b.classList.toggle('selected', parseInt(b.dataset.m) === p.mult);
+  });
+  document.getElementById(`spin-${idx}`).disabled = p.spinning || totalBet(p) > p.balance || state !== 'playing';
+}
+
+function updateScoreboard() {
+  const sb = document.getElementById('scoreboard');
+  sb.innerHTML = '';
+  players.forEach((p, idx) => {
+    const d = document.createElement('div');
+    d.className = 'pscore';
+    d.innerHTML = `P${idx+1}: <span>$${p.balance}</span>`;
+    sb.appendChild(d);
+  });
+}
+
+function spin(pIdx) {
+  const p = players[pIdx];
+  if(p.spinning || totalBet(p) > p.balance || state !== 'playing') return;
+  p.spinning = true;
+  p.balance -= totalBet(p);
+  p.spins++;
+  updatePlayerUI(pIdx);
+  updateScoreboard();
+  hideWin(pIdx);
+
+  const final = [];
+  for(let r=0; r<REELS; r++) {
+    const col = [];
+    for(let row=0; row<ROWS; row++) {
+      const si = Math.floor(Math.random() * POOL.length);
+      col.push(si);
+    }
+    final.push(col);
+  }
+
+  const pr = [];
+  for(let r=0; r<REELS; r++) pr.push(animReel(pIdx, r, final[r], r * 70));
+  
+  Promise.all(pr).then(() => {
+    p.reelVals = final;
+    p.spinning = false;
+    const win = evalP(pIdx);
+    if(win > 0) {
+      p.balance += win;
+      p.wins += win;
+      showWin(pIdx, win);
+      spawnParticles();
+    }
+    updatePlayerUI(pIdx);
+    updateScoreboard();
+  });
+}
+
+function animReel(pIdx, r, col, delay) {
+  return new Promise(res => {
+    const inner = document.getElementById(`ri-${pIdx}-${r}`);
+    setTimeout(() => {
+      inner.classList.add('spinning');
+      setTimeout(() => {
+        inner.classList.remove('spinning');
+        const syms = inner.querySelectorAll('.sym');
+        col.forEach((si, row) => {
+          if(syms[row]) syms[row].textContent = SYMBOLS[si].s;
+        });
+        res();
+      }, 350 + r * 50);
+    }, delay);
+  });
+}
+
+function evalP(pIdx) {
+  const p = players[pIdx];
+  let total = 0;
+  const lineRows = [
+    [2,2,2,2,2,2],
+    [0,0,0,0,0,0],
+    [4,4,4,4,4,4],
+    [0,1,2,3,4,5],
+    [5,4,3,2,1,0]
+  ];
+
+  for(let li=0; li<p.lines; li++) {
+    const rows = lineRows[li];
+    const syms = p.reelVals.map((col, r) => col[rows[r]]);
+    const first = syms[0];
+    let count = 1;
+    for(let i=1; i<REELS; i++) {
+      if(syms[i] === first) count++;
+      else break;
+    }
+    if(count >= 3) {
+      total += SYMBOLS[first].p[count] * p.mult * BASE;
+    }
+  }
+  return total;
+}
+
+function showWin(idx, amt) {
+  const wp = document.getElementById(`wp-${idx}`);
+  wp.querySelector('.wtext').textContent = `+$${amt}`;
+  wp.classList.add('show');
+  setTimeout(() => wp.classList.remove('show'), 1500);
+}
+
+function hideWin(idx) {
+  document.getElementById(`wp-${idx}`).classList.remove('show');
+}
+
+function spawnParticles() {
+  const e = ['💰','⭐','✨','🎉','💎','🔔'];
+  for(let i=0; i<10; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    p.textContent = e[Math.floor(Math.random() * e.length)];
+    p.style.left = (10 + Math.random() * 80) + 'vw';
+    p.style.top = (10 + Math.random() * 80) + 'vh';
+    p.style.setProperty('--dx', (Math.random()-.5)*180+'px');
+    p.style.setProperty('--dy', (Math.random()-.8)*180+'px');
+    p.style.animationDelay = Math.random()*.25+'s';
+    document.body.appendChild(p);
+    setTimeout(() => p.remove(), 1200);
+  }
+}
+
+function startTimer() {
+  if(timer) clearInterval(timer);
+  timer = setInterval(() => {
+    timeLeft -= 1000;
+    const m = Math.floor(timeLeft / 60000);
+    const s = Math.floor((timeLeft % 60000) / 1000);
+    const t = document.getElementById('timer');
+    t.textContent = `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+    t.classList.toggle('warning', timeLeft <= 60000);
+    if(timeLeft <= 0) { clearInterval(timer); endGame(); }
+  }, 1000);
+}
+
+function endGame() {
+  state = 'ended';
+  let max = -1, winner = 0;
+  players.forEach((p, i) => { if(p.balance > max) { max = p.balance; winner = i; } });
+  document.getElementById('w-name').textContent = `JUGADOR ${winner + 1}`;
+  document.getElementById('w-score').textContent = `$${max}`;
+
+  const sf = document.getElementById('scores-final');
+  sf.innerHTML = '';
+  players.forEach((p, i) => {
+    const d = document.createElement('div');
+    d.className = 'score-final-item';
+    d.innerHTML = `P${i+1}: <span>$${p.balance}</span>`;
+    sf.appendChild(d);
+  });
+
+  showScreen('end-screen');
+  spawnParticles();
+  setTimeout(spawnParticles, 300);
+}
+
+// GAMEPAD
+const prevGPState = {};
+
+function gameLoop() {
+  const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+
+  for(let i=0; i<gamepads.length; i++) {
+    const gp = gamepads[i];
+    if(!gp) continue;
+    
+    const key = `gp-${i}`;
+    if(!prevGPState[key]) prevGPState[key] = {};
+    const prev = prevGPState[key];
+
+    const axPressed = gp.buttons[0]?.pressed || gp.buttons[2]?.pressed;
+
+    if(axPressed && !prev.ax) {
+      if(state === 'menu') {
+        selectPlayers(numP);
+      } else if(state === 'join') {
+        tryJoinGame(i);
+      } else if(state === 'playing') {
+        const pIdx = gpAssignments.indexOf(i);
+        if(pIdx !== -1) spin(pIdx);
+      }
+    }
+
+    if(gp.buttons[9]?.pressed && !prev.start) {
+      if(state === 'join' && nextPlayerToJoin >= numP) {
+        startGame();
+      }
+    }
+
+    if(state === 'menu') {
+      const left = gp.buttons[14]?.pressed || (gp.axes[0] < -0.5 && !prev.axisLeft);
+      const right = gp.buttons[15]?.pressed || (gp.axes[0] > 0.5 && !prev.axisRight);
+      if(left && !prev.left && menuSel > 1) selectPlayers(menuSel - 1);
+      if(right && !prev.right && menuSel < 4) selectPlayers(menuSel + 1);
+      prev.left = left;
+      prev.right = right;
+      prev.axisLeft = gp.axes[0] < -0.5;
+      prev.axisRight = gp.axes[0] > 0.5;
+    }
+
+    if(state === 'playing') {
+      const pIdx = gpAssignments.indexOf(i);
+      if(pIdx !== -1) {
+        const up = gp.buttons[12]?.pressed || (gp.axes[1] < -0.5 && !prev.gpUp);
+        const down = gp.buttons[13]?.pressed || (gp.axes[1] > 0.5 && !prev.gpDown);
+        if(up && pIdx > 0) updateActivePanel(pIdx - 1);
+        if(down && pIdx < numP - 1) updateActivePanel(pIdx + 1);
+        prev.gpUp = gp.axes[1] < -0.5;
+        prev.gpDown = gp.axes[1] > 0.5;
+      }
+    }
+
+    prevGPState[key] = {
+      ax: axPressed,
+      start: gp.buttons[9]?.pressed,
+      left: prev.left, right: prev.right,
+      axisLeft: gp.axes[0] < -0.5, axisRight: gp.axes[0] > 0.5,
+      gpUp: prev.gpUp, gpDown: prev.gpDown
+    };
+  }
+
+  if(state === 'playing' || state === 'menu' || state === 'join') {
+    requestAnimationFrame(gameLoop);
+  }
+}
+
+// Keyboard
+document.addEventListener('keydown', e => {
+  if(state === 'menu') {
+    if(e.key === 'ArrowLeft' && menuSel > 1) selectPlayers(menuSel - 1);
+    if(e.key === 'ArrowRight' && menuSel < 4) selectPlayers(menuSel + 1);
+    if(e.key === 'Enter' || e.key === ' ') selectPlayers(numP);
+  } else if(state === 'join') {
+    if(e.key === 'Enter' || e.key === ' ') tryJoinGame(-1);
+  } else if(state === 'playing') {
+    if(e.key === 'ArrowUp') updateActivePanel(Math.max(0, gpAssignments.indexOf(-1) - 1));
+    if(e.key === 'ArrowDown') updateActivePanel(Math.min(numP-1, gpAssignments.indexOf(-1) + 1));
+    if(e.key === 'Enter' || e.key === ' ') spin(gpAssignments.indexOf(-1));
+  }
+});
+
+window.addEventListener('gamepadconnected', e => console.log('GP connected:', e.gamepad.id));
+window.addEventListener('gamepaddisconnected', e => console.log('GP disconnected:', e.gamepad.id));
+
+initMenu();
+requestAnimationFrame(gameLoop);
+</script>
+</body>
+</html>
