@@ -32,7 +32,8 @@
   .player-option { width:55px; height:55px; background:var(--reel-bg); border:2px solid var(--border); border-radius:8px; font-family:'Orbitron',sans-serif; font-size:1.4rem; font-weight:700; color:var(--dim); cursor:pointer; transition:all .2s; }
   .player-option:hover { border-color:var(--gold-dark); color:var(--gold); }
   .player-option.selected { background:var(--gold-dark); border-color:var(--gold); color:#000; box-shadow:0 0 12px #FFD70066; }
-  .gamepad-hint { font-size:.6rem; color:var(--dim); }
+  .gamepad-hint { font-size:.6rem; color:var(--dim); margin-bottom:10px; }
+  #btn-start:hover { transform:scale(1.05); box-shadow:0 0 15px #FFD70066; }
   .gamepad-hint span { color:var(--gold); }
 
   /* JOIN SCREEN */
@@ -133,6 +134,7 @@
       <button class="player-option" data-p="4">4</button>
     </div>
     <div class="gamepad-hint">Usa <span>D-PAD</span> y presiona <span>A</span> para confirmar</div>
+    <button id="btn-start" onclick="selectPlayers(numP)" style="margin-top:15px;padding:10px 25px;background:linear-gradient(135deg,#c8920a,#FFD700,#c8920a);border:none;border-radius:6px;font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:.1em;color:#000;cursor:pointer;">CONFIRMAR</button>
   </div>
 </div>
 
@@ -548,28 +550,39 @@ function gameLoop() {
     if(!prevGPState[key]) prevGPState[key] = {};
     const prev = prevGPState[key];
 
-    const axPressed = gp.buttons[0]?.pressed || gp.buttons[2]?.pressed;
+    const axPressed = gp.buttons[0] && gp.buttons[0].pressed || gp.buttons[2] && gp.buttons[2].pressed;
+    const startPressed = gp.buttons[9] && gp.buttons[9].pressed;
+    const dpadLeft = gp.buttons[14] && gp.buttons[14].pressed;
+    const dpadRight = gp.buttons[15] && gp.buttons[15].pressed;
+    const dpadUp = gp.buttons[12] && gp.buttons[12].pressed;
+    const dpadDown = gp.buttons[13] && gp.buttons[13].pressed;
 
     if(axPressed && !prev.ax) {
       if(state === 'menu') {
+        console.log('Menu: A pressed, going to join screen');
         selectPlayers(numP);
       } else if(state === 'join') {
+        console.log('Join: A pressed, trying to join');
         tryJoinGame(i);
       } else if(state === 'playing') {
         const pIdx = gpAssignments.indexOf(i);
-        if(pIdx !== -1) spin(pIdx);
+        if(pIdx !== -1) {
+          console.log('Playing: A pressed by GP', i, 'spinning player', pIdx);
+          spin(pIdx);
+        }
       }
     }
 
-    if(gp.buttons[9]?.pressed && !prev.start) {
+    if(startPressed && !prev.start) {
+      console.log('Start button pressed, state:', state);
       if(state === 'join' && nextPlayerToJoin >= numP) {
         startGame();
       }
     }
 
     if(state === 'menu') {
-      const left = gp.buttons[14]?.pressed || (gp.axes[0] < -0.5 && !prev.axisLeft);
-      const right = gp.buttons[15]?.pressed || (gp.axes[0] > 0.5 && !prev.axisRight);
+      const left = dpadLeft || (gp.axes[0] < -0.5 && !prev.axisLeft);
+      const right = dpadRight || (gp.axes[0] > 0.5 && !prev.axisRight);
       if(left && !prev.left && menuSel > 1) selectPlayers(menuSel - 1);
       if(right && !prev.right && menuSel < 4) selectPlayers(menuSel + 1);
       prev.left = left;
@@ -581,8 +594,8 @@ function gameLoop() {
     if(state === 'playing') {
       const pIdx = gpAssignments.indexOf(i);
       if(pIdx !== -1) {
-        const up = gp.buttons[12]?.pressed || (gp.axes[1] < -0.5 && !prev.gpUp);
-        const down = gp.buttons[13]?.pressed || (gp.axes[1] > 0.5 && !prev.gpDown);
+        const up = dpadUp || (gp.axes[1] < -0.5 && !prev.gpUp);
+        const down = dpadDown || (gp.axes[1] > 0.5 && !prev.gpDown);
         if(up && pIdx > 0) updateActivePanel(pIdx - 1);
         if(down && pIdx < numP - 1) updateActivePanel(pIdx + 1);
         prev.gpUp = gp.axes[1] < -0.5;
@@ -592,7 +605,7 @@ function gameLoop() {
 
     prevGPState[key] = {
       ax: axPressed,
-      start: gp.buttons[9]?.pressed,
+      start: startPressed,
       left: prev.left, right: prev.right,
       axisLeft: gp.axes[0] < -0.5, axisRight: gp.axes[0] > 0.5,
       gpUp: prev.gpUp, gpDown: prev.gpDown
@@ -606,20 +619,29 @@ function gameLoop() {
 
 // Keyboard
 document.addEventListener('keydown', e => {
+  console.log('Key pressed:', e.key, 'state:', state);
   if(state === 'menu') {
     if(e.key === 'ArrowLeft' && menuSel > 1) selectPlayers(menuSel - 1);
     if(e.key === 'ArrowRight' && menuSel < 4) selectPlayers(menuSel + 1);
-    if(e.key === 'Enter' || e.key === ' ') selectPlayers(numP);
+    if(e.key === 'Enter' || e.key === ' ') {
+      console.log('Enter/Space in menu, calling selectPlayers');
+      selectPlayers(numP);
+    }
   } else if(state === 'join') {
-    if(e.key === 'Enter' || e.key === ' ') tryJoinGame(-1);
+    if(e.key === 'Enter' || e.key === ' ') {
+      console.log('Enter/Space in join, trying join');
+      tryJoinGame(-1);
+    }
   } else if(state === 'playing') {
-    if(e.key === 'ArrowUp') updateActivePanel(Math.max(0, gpAssignments.indexOf(-1) - 1));
-    if(e.key === 'ArrowDown') updateActivePanel(Math.min(numP-1, gpAssignments.indexOf(-1) + 1));
-    if(e.key === 'Enter' || e.key === ' ') spin(gpAssignments.indexOf(-1));
+    if(e.key === 'ArrowUp') updateActivePanel(Math.max(0, 0 - 1));
+    if(e.key === 'ArrowDown') updateActivePanel(Math.min(numP-1, 0 + 1));
+    if(e.key === 'Enter' || e.key === ' ') spin(0);
   }
 });
 
-window.addEventListener('gamepadconnected', e => console.log('GP connected:', e.gamepad.id));
+window.addEventListener('gamepadconnected', e => {
+  console.log('GP connected:', e.gamepad.id, 'index:', e.gamepad.index);
+});
 window.addEventListener('gamepaddisconnected', e => console.log('GP disconnected:', e.gamepad.id));
 
 initMenu();
