@@ -16,25 +16,227 @@ body {
 .screen.active { display:flex; }
 
 /* MENU */
-#menu-screen { flex-direction:column; align-items:center; justify-content:center; background:radial-gradient(ellipse at 50% 30%, #2a1a00 0%, #0A0A0F 50%); overflow:hidden; }
+#menu-screen { 
+  flex-direction:column; 
+  align-items:center; 
+  justify-content:center; 
+  background: radial-gradient(ellipse at 50% 30%, #2a1a00 0%, #0A0A0F 50%),
+              linear-gradient(180deg, rgba(10,10,20,0.95), rgba(10,10,20,0.98));
+  overflow:hidden; 
+  position: relative;
+}
 .falling-stars { position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:0; }
 .falling-star { position:absolute; font-size:2rem; color:#FFD700; opacity:0; filter:blur(2px); animation:starFall linear infinite; }
 @keyframes starFall { 0% { transform:translateY(-100px) rotate(0deg); opacity:0; } 10% { opacity:0.4; } 90% { opacity:0.4; } 100% { transform:translateY(100vh) rotate(360deg); opacity:0; } }
-.menu-title { font-family:'Bebas Neue',sans-serif; font-size:clamp(3rem,10vw,6rem); letter-spacing:.15em; color:var(--gold); text-shadow:0 0 40px #FFD700, 0 0 80px #FFD70088, 0 0 120px #FFD70044; text-align:center; animation:titleGlow 2s ease-in-out infinite alternate; position:relative; z-index:1; }
-@keyframes titleGlow { from{text-shadow:0 0 40px #FFD700, 0 0 80px #FFD70088, 0 0 120px #FFD70044} to{text-shadow:0 0 60px #FFD700, 0 0 100px #FFD700aa, 0 0 150px #FFD70066} }
-.menu-sub { font-family:'Orbitron',sans-serif; font-size:.7rem; letter-spacing:.5em; color:var(--gold); margin-bottom:40px; text-shadow:0 0 10px #FFD70066; }
-.player-select-box { background:linear-gradient(180deg, rgba(30,30,50,0.9), rgba(20,20,35,0.95)); border:2px solid var(--gold); border-radius:16px; padding:30px 50px; text-align:center; box-shadow:0 0 30px #FFD70033, inset 0 0 30px rgba(255,215,0,0.05); animation:boxPulse 3s ease-in-out infinite; position:relative; z-index:1; }
-@keyframes boxPulse { 0%,100%{box-shadow:0 0 30px #FFD70033, inset 0 0 30px rgba(255,215,0,0.05)} 50%{box-shadow:0 0 50px #FFD70055, inset 0 0 40px rgba(255,215,0,0.1)} }
-.player-select-label { font-size:.6rem; letter-spacing:.3em; color:var(--gold); margin-bottom:20px; text-shadow:0 0 5px #FFD70066; }
-.player-options { display:flex; gap:10px; margin-bottom:20px; }
-.player-option { width:60px; height:60px; background:linear-gradient(180deg, #1a1a28, #0a0a15); border:2px solid var(--border); border-radius:10px; font-family:'Orbitron',sans-serif; font-size:1.5rem; font-weight:700; color:var(--dim); cursor:pointer; transition:all .2s; box-shadow:0 4px 15px rgba(0,0,0,0.5); }
-.player-option:hover { border-color:var(--gold); color:var(--gold); transform:translateY(-2px); box-shadow:0 6px 20px rgba(255,215,0,0.3); }
-.player-option.selected { background:linear-gradient(180deg, var(--gold), var(--gold-dark)); border-color:var(--gold); color:#000; box-shadow:0 0 20px #FFD700, 0 0 40px #FFD70066; transform:scale(1.1); }
-.gamepad-hint { font-size:.65rem; color:var(--dim); margin-bottom:15px; }
-.gamepad-hint span { color:var(--gold); text-shadow:0 0 5px #FFD70066; }
-.btn-confirm { margin-top:20px; padding:12px 35px; background:linear-gradient(180deg, var(--gold), var(--gold-dark)); border:none; border-radius:8px; font-family:'Bebas Neue',sans-serif; font-size:1.2rem; letter-spacing:.15em; color:#000; cursor:pointer; transition:all .15s; box-shadow:0 0 20px #FFD70066, 0 4px 15px rgba(0,0,0,0.5); animation:btnGlow 1.5s ease-in-out infinite alternate; }
-@keyframes btnGlow { from{box-shadow:0 0 20px #FFD70066, 0 4px 15px rgba(0,0,0,0.5)} to{box-shadow:0 0 35px #FFD700aa, 0 0 50px #FFD70055, 0 4px 15px rgba(0,0,0,0.5)} }
-.btn-confirm:hover { transform:scale(1.08); box-shadow:0 0 40px #FFD700, 0 0 60px #FFD70088; }
+
+.neon-ring {
+  position: absolute;
+  width: 600px;
+  height: 600px;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  border-top-color: var(--gold);
+  border-bottom-color: var(--green);
+  animation: neonSpin 8s linear infinite;
+  filter: drop-shadow(0 0 20px var(--gold)) drop-shadow(0 0 40px var(--green));
+  z-index: 0;
+  opacity: 0.3;
+}
+.neon-ring::before {
+  content: '';
+  position: absolute;
+  top: 20px; left: 20px; right: 20px; bottom: 20px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  border-left-color: var(--red);
+  border-right-color: var(--p1);
+  animation: neonSpinReverse 6s linear infinite;
+  filter: drop-shadow(0 0 15px var(--red));
+}
+@keyframes neonSpin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+@keyframes neonSpinReverse { 0% { transform: rotate(0deg); } 100% { transform: rotate(-360deg); } }
+
+.menu-title { 
+  font-family:'Bebas Neue',sans-serif; 
+  font-size:clamp(3.5rem,12vw,8rem); 
+  letter-spacing:.2em; 
+  color:var(--gold); 
+  text-shadow:
+    0 0 40px #FFD700, 
+    0 0 80px #FFD70088, 
+    0 0 120px #FFD70044,
+    0 0 160px #FFD70022; 
+  text-align:center; 
+  animation:titleGlow 2s ease-in-out infinite alternate; 
+  position:relative; 
+  z-index:2;
+  margin-bottom: 10px;
+}
+@keyframes titleGlow { 
+  from{text-shadow:0 0 40px #FFD700, 0 0 80px #FFD70088, 0 0 120px #FFD70044, 0 0 160px #FFD70022} 
+  to{text-shadow:0 0 60px #FFD700, 0 0 100px #FFD700aa, 0 0 150px #FFD70066, 0 0 200px #FFD70044} 
+}
+.menu-sub { 
+  font-family:'Orbitron',sans-serif; 
+  font-size:.75rem; 
+  letter-spacing:.6em; 
+  color:var(--gold); 
+  margin-bottom:50px; 
+  text-shadow:0 0 10px #FFD70066;
+  position: relative;
+  z-index: 2;
+}
+.player-select-box { 
+  background:linear-gradient(180deg, rgba(30,30,50,0.95), rgba(20,20,35,0.98)); 
+  border:3px solid var(--gold); 
+  border-radius:20px; 
+  padding:40px 60px; 
+  text-align:center; 
+  box-shadow:
+    0 0 40px #FFD70033, 
+    inset 0 0 40px rgba(255,215,0,0.08),
+    0 0 80px rgba(255,215,0,0.15); 
+  animation:boxPulse 3s ease-in-out infinite; 
+  position:relative; 
+  z-index:2;
+  backdrop-filter: blur(10px);
+}
+@keyframes boxPulse { 
+  0%,100%{box-shadow:0 0 40px #FFD70033, inset 0 0 40px rgba(255,215,0,0.08), 0 0 80px rgba(255,215,0,0.15)} 
+  50%{box-shadow:0 0 60px #FFD70055, inset 0 0 50px rgba(255,215,0,0.12), 0 0 100px rgba(255,215,0,0.25)} 
+}
+.player-select-label { 
+  font-size:.65rem; 
+  letter-spacing:.4em; 
+  color:var(--gold); 
+  margin-bottom:25px; 
+  text-shadow:0 0 8px #FFD70066; 
+}
+.player-options { display:flex; gap:15px; margin-bottom:25px; }
+.player-option { 
+  width:70px; 
+  height:70px; 
+  background:linear-gradient(180deg, #1a1a2e, #0a0a15); 
+  border:3px solid var(--border); 
+  border-radius:12px; 
+  font-family:'Orbitron',sans-serif; 
+  font-size:1.8rem; 
+  font-weight:700; 
+  color:var(--dim); 
+  cursor:pointer; 
+  transition:all .25s cubic-bezier(0.34,1.56,0.64,1); 
+  box-shadow:0 4px 20px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.05); 
+  position: relative;
+  overflow: hidden;
+}
+.player-option::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(45deg, transparent, rgba(255,215,0,0.1), transparent);
+  transform: rotate(45deg);
+  transition: all 0.5s;
+  opacity: 0;
+}
+.player-option:hover::before { opacity: 1; }
+.player-option:hover { 
+  border-color:var(--gold); 
+  color:var(--gold); 
+  transform:translateY(-4px) scale(1.05); 
+  box-shadow:0 8px 30px rgba(255,215,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1); 
+}
+.player-option.selected { 
+  background:linear-gradient(180deg, var(--gold), var(--gold-dark)); 
+  border-color:var(--gold); 
+  color:#000; 
+  box-shadow:
+    0 0 30px #FFD700, 
+    0 0 60px #FFD70066,
+    0 0 90px #FFD70033; 
+  transform:scale(1.15) translateY(-4px);
+  animation: selectedPulse 1.5s ease-in-out infinite;
+}
+@keyframes selectedPulse {
+  0%, 100% { box-shadow: 0 0 30px #FFD700, 0 0 60px #FFD70066, 0 0 90px #FFD70033; }
+  50% { box-shadow: 0 0 50px #FFD700, 0 0 80px #FFD70088, 0 0 120px #FFD70055; }
+}
+.gamepad-hint { font-size:.7rem; color:var(--dim); margin-bottom:20px; }
+.gamepad-hint span { color:var(--gold); text-shadow:0 0 8px #FFD70066; }
+.btn-confirm { 
+  margin-top:25px; 
+  padding:15px 45px; 
+  background:linear-gradient(180deg, var(--gold), var(--gold-dark)); 
+  border:none; 
+  border-radius:12px; 
+  font-family:'Bebas Neue',sans-serif; 
+  font-size:1.4rem; 
+  letter-spacing:.2em; 
+  color:#000; 
+  cursor:pointer; 
+  transition:all .2s cubic-bezier(0.34,1.56,0.64,1); 
+  box-shadow:
+    0 0 30px #FFD70066, 
+    0 6px 20px rgba(0,0,0,0.5),
+    inset 0 1px 0 rgba(255,255,255,0.3); 
+  animation:btnGlow 1.5s ease-in-out infinite alternate; 
+  position: relative;
+  overflow: hidden;
+}
+.btn-confirm::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(45deg, transparent, rgba(255,255,255,0.3), transparent);
+  transform: rotate(45deg);
+  animation: btnShine 3s ease-in-out infinite;
+}
+@keyframes btnShine {
+  0% { transform: translateX(-100%) rotate(45deg); }
+  100% { transform: translateX(100%) rotate(45deg); }
+}
+@keyframes btnGlow { 
+  from{box-shadow:0 0 30px #FFD70066, 0 6px 20px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.3)} 
+  to{box-shadow:0 0 50px #FFD700aa, 0 0 70px #FFD70055, 0 6px 20px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.3)} 
+}
+.btn-confirm:hover { 
+  transform:scale(1.1) translateY(-4px); 
+  box-shadow:0 0 60px #FFD700, 0 0 90px #FFD70088, 0 8px 30px rgba(0,0,0,0.6); 
+}
+
+/* Casino Lights */
+.casino-lights {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 60px;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  z-index: 1;
+  padding: 0 20px;
+}
+.casino-light {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--gold);
+  box-shadow: 0 0 15px var(--gold), 0 0 30px var(--gold);
+  animation: lightBlink 1s ease-in-out infinite;
+}
+.casino-light:nth-child(2n) { background: var(--red); box-shadow: 0 0 15px var(--red), 0 0 30px var(--red); animation-delay: 0.3s; }
+.casino-light:nth-child(3n) { background: var(--green); box-shadow: 0 0 15px var(--green), 0 0 30px var(--green); animation-delay: 0.6s; }
+.casino-light:nth-child(4n) { background: var(--p1); box-shadow: 0 0 15px var(--p1), 0 0 30px var(--p1); animation-delay: 0.2s; }
+@keyframes lightBlink {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.8); }
+}
 
 /* JOIN */
 #join-screen { flex-direction:column; align-items:center; justify-content:center; }

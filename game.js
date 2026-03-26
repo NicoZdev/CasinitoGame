@@ -142,17 +142,31 @@ function initMenu() {
 function createFallingStars() {
   const container = document.getElementById('falling-stars');
   container.innerHTML = '';
-  const count = 15;
+  const count = 20;
   for(let i = 0; i < count; i++) {
     const star = document.createElement('div');
     star.className = 'falling-star';
-    star.textContent = '🌟';
+    star.textContent = ['🌟', '⭐', '✨'][Math.floor(Math.random() * 3)];
     star.style.left = Math.random() * 100 + '%';
     star.style.fontSize = (1 + Math.random() * 1.5) + 'rem';
     star.style.animationDuration = (8 + Math.random() * 6) + 's';
     star.style.animationDelay = Math.random() * 10 + 's';
     star.style.opacity = 0.2 + Math.random() * 0.3;
     container.appendChild(star);
+  }
+  createCasinoLights();
+}
+
+function createCasinoLights() {
+  const container = document.getElementById('casino-lights');
+  if (!container) return;
+  container.innerHTML = '';
+  const count = 30;
+  for(let i = 0; i < count; i++) {
+    const light = document.createElement('div');
+    light.className = 'casino-light';
+    light.style.animationDelay = (Math.random() * 1) + 's';
+    container.appendChild(light);
   }
 }
 
