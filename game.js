@@ -1,8 +1,8 @@
 const SYMBOLS = [
-  { s:'<img src="Slot Machine/slot-symbol1.png" alt="sym">', w:22, p:[0,0,5,15,40,100,300] },
-  { s:'<img src="Slot Machine/slot-symbol2.png" alt="sym">', w:20, p:[0,0,6,18,45,120,350] },
-  { s:'<img src="Slot Machine/slot-symbol3.png" alt="sym">', w:18, p:[0,0,8,22,55,150,400] },
-  { s:'<img src="Slot Machine/slot-symbol4.png" alt="sym">', w:15, p:[0,0,10,28,70,200,500] },
+  { s:'🎰', w:22, p:[0,0,5,15,40,100,300] },
+  { s:'🍒', w:20, p:[0,0,6,18,45,120,350] },
+  { s:'🔔', w:18, p:[0,0,8,22,55,150,400] },
+  { s:'🍀', w:15, p:[0,0,10,28,70,200,500] },
   { s:'🍋', w:10, p:[0,0,15,40,100,300,700] },
   { s:'🍊', w:7,  p:[0,0,25,60,180,500,1000] },
   { s:'🍇', w:5,  p:[0,0,40,100,300,800,1500] },
@@ -426,17 +426,18 @@ function hideWin(idx) {
 }
 
 function spawnParticles() {
-  const emojis = ['✨', '💰', '⭐', '🌟', '💎'];
-  for(let i=0; i<12; i++) {
+  const emojis = ['✨', '💰', '⭐', '🌟', '💎', '🎰', '🍒', '🔔'];
+  for(let i=0; i<20; i++) {
     const p = document.createElement('div');
     p.className = 'particle';
     p.textContent = emojis[Math.floor(Math.random() * emojis.length)];
-    p.style.left = (30 + Math.random() * 40) + '%';
-    p.style.top = (30 + Math.random() * 40) + '%';
+    p.style.left = (20 + Math.random() * 60) + '%';
+    p.style.top = (20 + Math.random() * 60) + '%';
     const angle = Math.random() * Math.PI * 2;
-    const dist = 100 + Math.random() * 150;
+    const dist = 150 + Math.random() * 200;
     p.style.setProperty('--dx', Math.cos(angle) * dist + 'px');
     p.style.setProperty('--dy', Math.sin(angle) * dist + 'px');
+    p.style.fontSize = (1.2 + Math.random() * 0.8) + 'rem';
     document.body.appendChild(p);
     setTimeout(() => p.remove(), 1200);
   }
@@ -804,7 +805,7 @@ function evaluateWinAll(pIdx) {
   for(let row=ROWS-1; row>=0; row--) {
     const firstSym = p.reelVals[0][row];
     let consecutive = 1;
-    
+
     for(let r=1; r<REELS; r++) {
       const nextRow = row - r;
       if(nextRow < 0) break;
@@ -814,7 +815,7 @@ function evaluateWinAll(pIdx) {
         break;
       }
     }
-    
+
     if(consecutive >= 3) {
       const win = SYMBOLS[firstSym].p[consecutive] * p.mult;
       total += win;
@@ -828,7 +829,55 @@ function evaluateWinAll(pIdx) {
       }
     }
   }
-  
+
+  // Línea en zigzag (V pattern): fila 2 -> fila 4 -> fila 2 -> fila 4 -> fila 2 -> fila 4
+  const zigzagRows = [2, 4, 2, 4, 2, 4];
+  const firstSymZig = p.reelVals[0][zigzagRows[0]];
+  let consecZig = 1;
+  for(let r=1; r<REELS; r++) {
+    if(p.reelVals[r][zigzagRows[r]] === firstSymZig) {
+      consecZig++;
+    } else {
+      break;
+    }
+  }
+  if(consecZig >= 3) {
+    const win = SYMBOLS[firstSymZig].p[consecZig] * p.mult;
+    total += win;
+    winningSymbols.add(firstSymZig);
+    for(let r=0; r<consecZig; r++) {
+      const k = `${r},${zigzagRows[r]}`;
+      if(!counted.has(k)) {
+        counted.add(k);
+        winningPositions.push({ reel: r, row: zigzagRows[r] });
+      }
+    }
+  }
+
+  // Línea en zigzag inverso (Λ pattern): fila 0 -> fila 2 -> fila 0 -> fila 2 -> fila 0 -> fila 2
+  const zigzag2Rows = [0, 2, 0, 2, 0, 2];
+  const firstSymZig2 = p.reelVals[0][zigzag2Rows[0]];
+  let consecZig2 = 1;
+  for(let r=1; r<REELS; r++) {
+    if(p.reelVals[r][zigzag2Rows[r]] === firstSymZig2) {
+      consecZig2++;
+    } else {
+      break;
+    }
+  }
+  if(consecZig2 >= 3) {
+    const win = SYMBOLS[firstSymZig2].p[consecZig2] * p.mult;
+    total += win;
+    winningSymbols.add(firstSymZig2);
+    for(let r=0; r<consecZig2; r++) {
+      const k = `${r},${zigzag2Rows[r]}`;
+      if(!counted.has(k)) {
+        counted.add(k);
+        winningPositions.push({ reel: r, row: zigzag2Rows[r] });
+      }
+    }
+  }
+
   return { totalWin: total, winningSymbols: Array.from(winningSymbols), winningPositions: winningPositions };
 }
 
