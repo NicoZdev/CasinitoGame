@@ -142,17 +142,31 @@ function initMenu() {
 function createFallingStars() {
   const container = document.getElementById('falling-stars');
   container.innerHTML = '';
-  const count = 15;
+  const count = 20;
   for(let i = 0; i < count; i++) {
     const star = document.createElement('div');
     star.className = 'falling-star';
-    star.textContent = '🌟';
+    star.textContent = ['🌟', '⭐', '✨'][Math.floor(Math.random() * 3)];
     star.style.left = Math.random() * 100 + '%';
     star.style.fontSize = (1 + Math.random() * 1.5) + 'rem';
     star.style.animationDuration = (8 + Math.random() * 6) + 's';
     star.style.animationDelay = Math.random() * 10 + 's';
     star.style.opacity = 0.2 + Math.random() * 0.3;
     container.appendChild(star);
+  }
+  createCasinoLights();
+}
+
+function createCasinoLights() {
+  const container = document.getElementById('casino-lights');
+  if (!container) return;
+  container.innerHTML = '';
+  const count = 30;
+  for(let i = 0; i < count; i++) {
+    const light = document.createElement('div');
+    light.className = 'casino-light';
+    light.style.animationDelay = (Math.random() * 1) + 's';
+    container.appendChild(light);
   }
 }
 
@@ -455,6 +469,41 @@ function showBonusNotify(count) {
   setTimeout(() => notify.classList.remove('show'), 2500);
 }
 
+let bonusSuspenseEl = null;
+
+function showBonusSuspense() {
+  if(bonusSuspenseEl) return; // Ya existe
+  
+  bonusSuspenseEl = document.createElement('div');
+  bonusSuspenseEl.className = 'bonus-suspense show';
+  bonusSuspenseEl.innerHTML = `
+    <div class="star-icon">🌟</div>
+    <div class="missing-text">¡FALTA 1!</div>
+  `;
+  document.body.appendChild(bonusSuspenseEl);
+  
+  // Sonido de suspenso
+  if(audioCtx) {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.frequency.value = 440;
+    osc.type = 'sine';
+    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.3);
+  }
+}
+
+function hideBonusSuspense() {
+  if(bonusSuspenseEl) {
+    bonusSuspenseEl.remove();
+    bonusSuspenseEl = null;
+  }
+}
+
 function clearWinnerAnimations(pIdx) {
   document.querySelectorAll(`#panel-${pIdx} .sym`).forEach(s => {
     s.classList.remove('winner', 'big-win');
@@ -605,12 +654,19 @@ function spin(pIdx) {
     leverUp(pIdx);
     
     const bonusCount = countBonusSymbols(final);
+    
+    // Mostrar suspenso si hay exactamente 2 bonus symbols
+    if(bonusCount === 2) {
+      showBonusSuspense();
+    }
+    
     if(bonusCount >= 3) {
       playSound('bonus');
       const freeSpinsEarned = 10 + (bonusCount - 3) * 2;
       p.freeSpins = freeSpinsEarned;
       p.freeSpinsTotal = freeSpinsEarned;
       p.freeSpinsWins = 0;
+      hideBonusSuspense();
       showBonusNotify(freeSpinsEarned);
       shakeScreen();
       updatePlayerUI(pIdx);
@@ -619,6 +675,9 @@ function spin(pIdx) {
         p.autoPlaying = true;
         doFreeSpin(pIdx);
       }, 2500);
+    } else if(bonusCount < 2) {
+      // Ocultar suspenso si no hay suficientes estrellas
+      hideBonusSuspense();
     }
     
     const result = evaluateWinAll(pIdx);
@@ -731,6 +790,10 @@ function animReel(pIdx, reelIdx, finalSyms, delay) {
         sym.className = 'sym';
         if(SYMBOLS[si].bonus) {
           sym.classList.add('bonus-sym');
+          // Marcar como near-miss si hay exactamente 2 bonus en total
+          if(bonusSuspenseEl) {
+            sym.classList.add('near-miss');
+          }
         }
         sym.innerHTML = SYMBOLS[si].s;
         inner.appendChild(sym);
