@@ -359,7 +359,7 @@ function buildPaytable() {
     row.className = `pay-row${s.bonus ? ' bonus-row' : ''}`;
     row.dataset.sym = SYMBOLS.indexOf(s);
     row.innerHTML = `
-      <span class="sym">${s.s}</span>
+      <div class="sym-box"><span class="sym">${s.s}</span></div>
       <span class="payouts">${s.p.slice(2).join(' / ')}</span>
     `;
     list.appendChild(row);
